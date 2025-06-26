@@ -1,4 +1,3 @@
-# user/views.py
 from rest_framework import generics, mixins, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -6,22 +5,34 @@ from django.core.mail import send_mail
 from django.conf import settings
 from random import randint
 from .models import User, UserRegion, UserSubRegion, Profession, UserRole
-from .serializers import *
+from .serializers import (
+    CustomTokenObtainPairSerializer,
+    RegisterSerializer,
+    VerifyEmailSerializer,
+    UserRoleSerializer,
+    RegionSerializer,
+    SubRegionSerializer,
+    ProfessionSerializer,
+    RoleSerializer,
+    UploadDocumentsSerializer
+)
 from core.passport_classifier.tasks import validate_passport_images_task
 from apps.users.permissions import IsExecutorPermission
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import status
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
-    permission_classes = [AllowAny]
-    
-    
-class RoleViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = UserRole.objects.all()
-    serializer_class = UserRoleSerializer
+
+# Авторизация через кастомный сериализатор
+class CustomTokenObtainPairView(APIView):
     permission_classes = [AllowAny]
 
+    def post(self, request):
+        serializer = CustomTokenObtainPairSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+# Регистрация
 class RegisterView(mixins.CreateModelMixin, generics.GenericAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -32,6 +43,7 @@ class RegisterView(mixins.CreateModelMixin, generics.GenericAPIView):
         code = f"{randint(1000, 9999)}"
         user.email_verification_code = code
         user.save()
+
         send_mail(
             subject='Подтверждение Email',
             message=f'Ваш код подтверждения: {code}',
@@ -44,6 +56,8 @@ class RegisterView(mixins.CreateModelMixin, generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
+
+# Подтверждение email
 class VerifyEmailView(generics.GenericAPIView):
     serializer_class = VerifyEmailSerializer
     permission_classes = [AllowAny]
@@ -69,21 +83,32 @@ class VerifyEmailView(generics.GenericAPIView):
         return Response({"message": "Email подтвержден"})
 
 
+# CRUD и справочники
+class RoleViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = UserRole.objects.all()
+    serializer_class = UserRoleSerializer
+    permission_classes = [AllowAny]
+
+
 class RegionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = UserRegion.objects.all()
     serializer_class = RegionSerializer
     permission_classes = [AllowAny]
+
 
 class SubRegionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = UserSubRegion.objects.all()
     serializer_class = SubRegionSerializer
     permission_classes = [AllowAny]
 
+
 class ProfessionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Profession.objects.all()
     serializer_class = ProfessionSerializer
     permission_classes = [AllowAny]
 
+
+# Обновление роли пользователя
 class SetRoleView(generics.UpdateAPIView):
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated]
@@ -93,8 +118,10 @@ class SetRoleView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         request.user.role = serializer.validated_data['role']
         request.user.save()
-        return Response({"message": "Role updated"})
+        return Response({"message": "Роль обновлена"})
 
+
+# Обновление профессии пользователя
 class SetProfessionView(generics.UpdateAPIView):
     serializer_class = ProfessionSerializer
     permission_classes = [IsAuthenticated]
@@ -105,10 +132,12 @@ class SetProfessionView(generics.UpdateAPIView):
             profession = Profession.objects.get(id=profession_id)
             request.user.profession = profession
             request.user.save()
-            return Response({"message": "Profession updated"})
+            return Response({"message": "Профессия обновлена"})
         except Profession.DoesNotExist:
-            return Response({"error": "Profession not found"}, status=404)
+            return Response({"error": "Профессия не найдена"}, status=404)
 
+
+# Загрузка документов
 class UploadDocumentsView(generics.UpdateAPIView):
     serializer_class = UploadDocumentsSerializer
     permission_classes = [IsAuthenticated]
@@ -117,17 +146,18 @@ class UploadDocumentsView(generics.UpdateAPIView):
         serializer = self.get_serializer(instance=request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"message": "Documents uploaded"})
+        return Response({"message": "Документы загружены"})
 
+
+# Проверка паспорта через Celery
 class PassportVerificationAPIView(APIView):
     permission_classes = [IsExecutorPermission]
 
     def post(self, request):
-        serializer = PassportVerificationSerializer(data=request.data)
+        serializer = UploadDocumentsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-
         user.passport_front = serializer.validated_data['passport_front']
         user.passport_back = serializer.validated_data['passport_back']
         user.passport_selfie = serializer.validated_data['passport_selfie']

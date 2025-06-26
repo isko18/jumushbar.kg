@@ -2,11 +2,11 @@ from rest_framework import serializers
 from .models import User, UserRegion, UserSubRegion, Profession, UserRole
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
-from django.contrib.auth import authenticate
-
 from django.contrib.auth import get_user_model
+
 UserModel = get_user_model()
 
+# Аутентификация и выдача токена
 class CustomTokenObtainPairSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -16,8 +16,8 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+            user = UserModel.objects.get(email=email)
+        except UserModel.DoesNotExist:
             raise AuthenticationFailed('Неверный email или пароль')
 
         if not user.check_password(password) or not user.is_active:
@@ -35,23 +35,41 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                 'phone': user.phone,
             }
         }
-    
-class UserRoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserRole
-        fields = ['id', 'name', 'label']
 
+# Регистрация
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'phone', 'full_name']
+        fields = ['email', 'password', 'phone', 'full_name']
 
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = UserModel.objects.create_user(password=password, **validated_data)
+        return user
+
+# Подтверждение email
 class VerifyEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField()
 
+# Роли
+class UserRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRole
+        fields = ['id', 'name', 'label']
+
+class RoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=[('исполнитель', 'исполнитель'), ('заказчик', 'заказчик')])
+
+# Профессии
+class ProfessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profession
+        fields = ['id', 'title']
+
+# Регионы и подрегионы
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRegion
@@ -62,14 +80,7 @@ class SubRegionSerializer(serializers.ModelSerializer):
         model = UserSubRegion
         fields = ['id', 'title', 'region']
 
-class RoleSerializer(serializers.Serializer):
-    role = serializers.ChoiceField(choices=[('исполнитель', 'исполнитель'), ('заказчик', 'заказчик')])
-
-class ProfessionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profession
-        fields = ['id', 'title']
-
+# Паспортные документы
 class UploadDocumentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
