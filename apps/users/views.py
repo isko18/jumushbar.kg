@@ -10,6 +10,7 @@ from .serializers import *
 from core.passport_classifier.tasks import validate_passport_images_task
 from apps.users.permissions import IsExecutorPermission
 from rest_framework.views import APIView
+from rest_framework import status
 
 
 class RoleViewSet(viewsets.ReadOnlyModelViewSet):
@@ -114,28 +115,12 @@ class UploadDocumentsView(generics.UpdateAPIView):
         serializer.save()
         return Response({"message": "Documents uploaded"})
 
-class PassportVerificationAPIView(APIView):
-    permission_classes = [IsExecutorPermission]
+class PassportPhotoUploadView(APIView):
+    permission_classes = [IsAuthenticated, IsExecutorPermission]
 
-    def post(self, request):
-        serializer = PassportVerificationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user = request.user
-
-        user.passport_front = serializer.validated_data['passport_front']
-        user.passport_back = serializer.validated_data['passport_back']
-        user.passport_selfie = serializer.validated_data['passport_selfie']
-        user.save()
-
-        validate_passport_images_task.delay(
-            user.id,
-            user.passport_selfie.path,
-            user.passport_front.path,
-            user.passport_back.path
-        )
-
-        return Response(
-            {"detail": "Проверка запущена. Результат появится после обработки."},
-            status=status.HTTP_202_ACCEPTED
-        )
+    def post(self, request, *args, **kwargs):
+        serializer = PassportPhotoUploadSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Паспортные фото успешно проверены и сохранены."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

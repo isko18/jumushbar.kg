@@ -21,6 +21,6 @@ urlpatterns = [
     path('user/verify/', UploadDocumentsView.as_view()),
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('verify-passport/', PassportVerificationAPIView.as_view(), name='verify-passport'),
+    path('verify-passport/', PassportPhotoUploadView.as_view(), name='verify-passport'),
     path('', include(router.urls)),
 ]
