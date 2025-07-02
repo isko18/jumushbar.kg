@@ -50,7 +50,6 @@ class UserRole(models.Model):
         verbose_name_plural = "Роли"
 
 class User(AbstractUser, PermissionsMixin):
-    username = None
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=155)
     phone = models.CharField(max_length=20)
@@ -65,8 +64,8 @@ class User(AbstractUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['full_name']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
 
     class Meta:
         verbose_name = 'Пользователь'

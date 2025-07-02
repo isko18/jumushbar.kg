@@ -5,13 +5,13 @@ from .models import User, UserRegion, UserSubRegion, Profession, UserRole
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     model = User
-    list_display = ('email', 'full_name', 'is_verified', 'role', 'is_staff')
+    list_display = ('username', 'email', 'full_name', 'is_verified', 'role', 'is_staff')
     list_filter = ('is_verified', 'role', 'is_staff', 'is_superuser')
-    search_fields = ('email', 'full_name', 'phone')
+    search_fields = ('username', 'email', 'full_name', 'phone')
     ordering = ('-date_joined',)
 
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
+        (None, {'fields': ('username', 'email', 'password')}),
         ('Личная информация', {'fields': ('full_name', 'phone', 'role', 'profession', 'subregion')}),
         ('Паспортные данные', {'fields': ('passport_front', 'passport_back', 'passport_selfie')}),
         ('Подтверждение', {'fields': ('is_verified', 'email_verification_code')}),
@@ -22,10 +22,9 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'is_verified', 'is_staff', 'is_superuser')}
+            'fields': ('username', 'email', 'password1', 'password2', 'is_verified', 'is_staff', 'is_superuser')}
         ),
     )
-
 
 @admin.register(UserRegion)
 class UserRegionAdmin(admin.ModelAdmin):
