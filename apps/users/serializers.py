@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from .models import User, UserRegion, UserSubRegion, Profession, UserRole
 from core.passport_classifier.utils import predict_passport_photo
 import tempfile
@@ -9,6 +10,14 @@ class UserRoleSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'label']
 
 class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        validators=[
+            UniqueValidator(
+                queryset=User.objects.all(),
+                message="Этот email уже зарегистрирован."
+            )
+        ]
+    )
     password = serializers.CharField(write_only=True)
 
     class Meta:
