@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, UserRegion, UserSubRegion, Profession, UserRole
+from .models import User, UserRegion, UserSubRegion, Profession
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -41,5 +41,3 @@ class UserSubRegionAdmin(admin.ModelAdmin):
 class ProfessionAdmin(admin.ModelAdmin):
     list_display = ('id', 'title')
     search_fields = ('title',)
-
-admin.site.register(UserRole)

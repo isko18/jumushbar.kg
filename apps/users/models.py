@@ -38,23 +38,16 @@ class Profession(models.Model):
         verbose_name = 'Профессия'
         verbose_name_plural = 'Профессии'
 
-class UserRole(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    label = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.label
-
-    class Meta:
-        verbose_name = "Роль"
-        verbose_name_plural = "Роли"
-
 class User(AbstractUser, PermissionsMixin):
+    ROLE = (
+        ("Заказчик", "Заказчик"),
+        ("Исполнитель", "Исполнитель")
+    )
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=155)
     phone = models.CharField(max_length=20)
     is_verified = models.BooleanField(default=False)
-    role = models.ForeignKey(UserRole, null=True, blank=True, on_delete=models.SET_NULL)
+    role = models.CharField(null=True, blank=True, choices=ROLE, max_length=15, verbose_name='Роли')
     profession = models.ForeignKey(Profession, null=True, blank=True, on_delete=models.SET_NULL)
     subregion = models.ForeignKey(UserSubRegion, null=True, blank=True, on_delete=models.SET_NULL)
     email_verification_code = models.CharField(max_length=6, blank=True, null=True)
