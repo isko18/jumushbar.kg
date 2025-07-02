@@ -11,6 +11,9 @@ from core.passport_classifier.tasks import validate_passport_images_task
 from apps.users.permissions import IsExecutorPermission
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from random import randint
 
 
 class RegisterView(mixins.CreateModelMixin, generics.GenericAPIView):
@@ -133,3 +136,66 @@ class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
         user = self.get_object()
         user.delete()
         return Response({"message": "Аккаунт удалён"})
+
+
+
+class LoginWithCodeRequestView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        if not email or not password:
+            return Response({"error": "Email и пароль обязательны."}, status=400)
+
+        user = authenticate(request, email=email, password=password)
+
+        if user is None:
+            return Response({"error": "Неверные учетные данные."}, status=400)
+
+        if not user.is_active:
+            return Response({"error": "Аккаунт не активен."}, status=400)
+
+        # генерируем код
+        code = f"{randint(1000, 9999)}"
+        user.email_verification_code = code
+        user.save()
+
+        # отправляем код
+        send_mail(
+            subject="Код подтверждения входа",
+            message=f"Ваш код для входа: {code}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False
+        )
+
+        return Response({"message": "Код отправлен на почту."}, status=200)
+
+
+class LoginWithCodeVerifyView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        code = request.data.get("code")
+
+        if not email or not code:
+            return Response({"error": "Email и код обязательны."}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "Пользователь не найден."}, status=404)
+
+        if user.email_verification_code != code:
+            return Response({"error": "Неверный код."}, status=400)
+
+        # Сброс кода
+        user.email_verification_code = None
+        user.save()
+
+        # Выдача токена
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=200)
