@@ -137,8 +137,6 @@ class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
         user.delete()
         return Response({"message": "Аккаунт удалён"})
 
-
-
 class LoginWithCodeRequestView(APIView):
     def post(self, request):
         email = request.data.get("email")
@@ -171,7 +169,6 @@ class LoginWithCodeRequestView(APIView):
 
         return Response({"message": "Код отправлен на почту."}, status=200)
 
-
 class LoginWithCodeVerifyView(APIView):
     def post(self, request):
         email = request.data.get("email")
@@ -199,3 +196,29 @@ class LoginWithCodeVerifyView(APIView):
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }, status=200)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Код сброса отправлен на почту"})
+
+class PasswordResetCodeVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetCodeVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({"message": "Код подтвержден"})
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Пароль успешно сброшен"})

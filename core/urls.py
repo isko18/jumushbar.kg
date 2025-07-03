@@ -8,9 +8,9 @@ from drf_yasg import openapi
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Jumush.kg",
+        title="Jumush-bar.kg",
         default_version='v1',
-        description="Jumush.kg description",
+        description="Jumush-bar.kg description",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="nurlanuuulubeksultan@gmail.com"),
         license=openapi.License(name="BSD License"),

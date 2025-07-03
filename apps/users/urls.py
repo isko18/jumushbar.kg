@@ -6,7 +6,6 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
-
 router = DefaultRouter()
 router.register(r'regions', RegionViewSet)
 router.register(r'subregions', SubRegionViewSet)
@@ -24,5 +23,8 @@ urlpatterns = [
     path('user/profile/', UserProfileView.as_view(), name='user-profile'),
     path('auth/login-request/', LoginWithCodeRequestView.as_view(), name='login-request'),
     path('auth/login-verify/', LoginWithCodeVerifyView.as_view(), name='login-verify'),
+    path('auth/password-reset-request/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('auth/password-reset-verify/', PasswordResetCodeVerifyView.as_view(), name='password-reset-verify'),
+    path('auth/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('', include(router.urls)),
 ]

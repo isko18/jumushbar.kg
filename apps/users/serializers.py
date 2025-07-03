@@ -2,7 +2,9 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from .models import User, UserRegion, UserSubRegion, Profession
 from core.passport_classifier.utils import predict_passport_photo
-import tempfile
+import tempfile, random
+from django.core.mail import send_mail
+from django.conf import settings
 
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
@@ -139,3 +141,61 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.currency = validated_data['currency']
         instance.save()
         return instance
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Аккаунт с таким email не существует")
+        return value
+
+    def save(self):
+        email = self.validated_data['email']
+        user = User.objects.get(email=email)
+        code = f"{random.randint(1000, 9999)}"
+        user.email_verification_code = code
+        user.save()
+
+        send_mail(
+            subject="Сброс пароля",
+            message=f"Ваш код для сброса пароля: {code}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False
+        )
+        return user
+
+class PasswordResetCodeVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField()
+
+    def validate(self, data):
+        try:
+            user = User.objects.get(email=data['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"email": "Пользователь не найден"})
+
+        if user.email_verification_code != data['code']:
+            raise serializers.ValidationError({"code": "Код неправильный"})
+        return data
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    new_password = serializers.CharField(write_only=True)
+    new_password_repeat = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['new_password_repeat']:
+            raise serializers.ValidationError({"new_password_repeat": "Пароли не совпадают"})
+        return data
+
+    def save(self):
+        email = self.validated_data['email']
+        new_password = self.validated_data['new_password']
+        user = User.objects.get(email=email)
+        user.set_password(new_password)
+        user.email_verification_code = None
+        user.save()
+        return user
