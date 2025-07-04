@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from apps.orders.models import Category, Order, OrderPhoto
 
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -17,7 +16,9 @@ class OrderPhotoSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     photos = OrderPhotoSerializer(many=True, read_only=True)
     photo_files = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=False
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
     )
 
     class Meta:
@@ -35,13 +36,15 @@ class OrderSerializer(serializers.ModelSerializer):
             'location',
             'created_at',
             'photos',
-            'photo_files'
+            'photo_files',
         ]
         read_only_fields = ['customer', 'created_at', 'photos']
 
     def create(self, validated_data):
         photo_files = self.context['request'].FILES.getlist('photo_files')
-        order = Order.objects.create(customer=self.context['request'].user, **validated_data)
+        validated_data.pop('photo_files', None)
+        order = Order.objects.create(**validated_data)
+        # Сохраняем фото
         for photo_file in photo_files:
             OrderPhoto.objects.create(order=order, image=photo_file)
         return order
