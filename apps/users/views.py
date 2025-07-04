@@ -127,7 +127,7 @@ class PassportPhotoUploadView(APIView):
 class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated, IsExecutorPermission]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user
