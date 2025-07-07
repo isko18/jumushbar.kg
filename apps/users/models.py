@@ -56,7 +56,9 @@ class User(AbstractUser, PermissionsMixin):
     passport_front = models.ImageField(upload_to='passport/front/', null=True, blank=True)
     passport_back = models.ImageField(upload_to='passport/back/', null=True, blank=True)
     passport_selfie = models.ImageField(upload_to='passport/selfie/', null=True, blank=True)
-
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField(max_length=10, default='KGS')
+    
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'

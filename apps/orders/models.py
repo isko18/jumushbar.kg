@@ -48,3 +48,13 @@ class OrderPhoto(models.Model):
     class Meta:
         verbose_name = "Фото заказа"
         verbose_name_plural = "Фото заказов"
+
+class OrderResponse(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='responses')
+    executor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_responses')
+    responded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('order', 'executor')
+        verbose_name = "Отклик"
+        verbose_name_plural = "Отклики"

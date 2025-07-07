@@ -126,7 +126,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'phone',
             'region_id',
             'profession_id',
-            'currency'
+            'currency',
+            'balance'
         ]
         read_only_fields = ['username', 'email', 'phone']
 

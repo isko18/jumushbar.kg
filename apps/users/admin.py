@@ -12,7 +12,7 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
-        ('Личная информация', {'fields': ('full_name', 'phone', 'role', 'profession', 'subregion')}),
+        ('Личная информация', {'fields': ('full_name', 'phone', 'role', 'profession', 'subregion', "balance")}),
         ('Паспортные данные', {'fields': ('passport_front', 'passport_back', 'passport_selfie')}),
         ('Подтверждение', {'fields': ('is_verified', 'email_verification_code')}),
         ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
