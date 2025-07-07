@@ -22,5 +22,7 @@ urlpatterns = [
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verify-passport/', PassportPhotoUploadView.as_view(), name='verify-passport'),
     path('user/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('auth/login-request/', LoginWithCodeRequestView.as_view(), name='login-request'),
+    path('auth/login-verify/', LoginWithCodeVerifyView.as_view(), name='login-verify'),
     path('', include(router.urls)),
 ]
