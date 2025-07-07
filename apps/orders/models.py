@@ -15,6 +15,12 @@ class Category(models.Model):
 
 
 class Order(models.Model):
+    STATUS_CHOICES = (
+        ('active', 'Активный'),
+        ('completed', 'Завершённый'),
+        ('cancelled', 'Отменённый'),
+    )
+
     customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
@@ -23,8 +29,9 @@ class Order(models.Model):
     deadline = models.DateField()
     preferred_time = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=20)
-    location = models.CharField(max_length=255) 
+    location = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='active')
 
     class Meta:
         verbose_name = "Заказ"
@@ -53,8 +60,17 @@ class OrderResponse(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='responses')
     executor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_responses')
     responded_at = models.DateTimeField(auto_now_add=True)
+    message = models.TextField(blank=True, null=True)
 
     class Meta:
         unique_together = ('order', 'executor')
         verbose_name = "Отклик"
         verbose_name_plural = "Отклики"
+
+class OrderRespondLog(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True)
+    executor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    idempotency_key = models.CharField(max_length=100, blank=True, null=True)
+    success = models.BooleanField()
+    reason = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)

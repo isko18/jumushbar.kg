@@ -1,6 +1,9 @@
 from rest_framework import serializers
-from apps.orders.models import Category, Order, OrderPhoto, OrderResponse
+from apps.orders.models import Category, Order, OrderPhoto, OrderResponse, OrderRespondLog
 from apps.users.models import User
+from django.utils import timezone
+from django.db import transaction
+from rest_framework.exceptions import APIException
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,55 +48,122 @@ class OrderSerializer(serializers.ModelSerializer):
         photo_files = self.context['request'].FILES.getlist('photo_files')
         validated_data.pop('photo_files', None)
         order = Order.objects.create(**validated_data)
-        # Сохраняем фото
         for photo_file in photo_files:
             OrderPhoto.objects.create(order=order, image=photo_file)
         return order
 
 
+class Conflict(APIException):
+    status_code = 409
+    default_detail = 'Конфликт: операция уже выполнена.'
+    default_code = 'conflict'
+
+
 class OrderRespondSerializer(serializers.Serializer):
     order_id = serializers.IntegerField()
-
-    def validate_order_id(self, value):
-        try:
-            order = Order.objects.get(pk=value)
-        except Order.DoesNotExist:
-            raise serializers.ValidationError("Заказ не найден")
-        return value
+    message = serializers.CharField(required=False, allow_blank=True)
+    idempotency_key = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, data):
         request = self.context['request']
         executor = request.user
         order_id = data['order_id']
 
-        # Проверка верификации
-        if not executor.is_verified:
-            raise serializers.ValidationError("Для отклика нужно пройти верификацию.")
+        try:
+            order = Order.objects.get(pk=order_id)
+        except Order.DoesNotExist:
+            self._log_attempt(order=None, executor=executor, success=False, reason="Заказ не найден", data=data)
+            raise serializers.ValidationError("Заказ не найден")
 
-        # Проверка, что уже откликался
-        if OrderResponse.objects.filter(order_id=order_id, executor=executor).exists():
+        if executor.is_blocked:
+            self._log_attempt(order, executor, False, "Пользователь заблокирован", data)
+            raise serializers.ValidationError("Ваш аккаунт заблокирован.")
+
+        if order.deadline < timezone.now().date():
+            self._log_attempt(order, executor, False, "Истёк дедлайн", data)
+            raise serializers.ValidationError("Нельзя откликнуться на заказ с истекшим дедлайном.")
+
+        if order.status != 'active':
+            self._log_attempt(order, executor, False, f"Статус заказа: {order.get_status_display()}", data)
+            raise serializers.ValidationError(f"Нельзя откликнуться на заказ со статусом: {order.get_status_display()}")
+
+        if order.customer == executor:
+            self._log_attempt(order, executor, False, "Попытка отклика на свой заказ", data)
+            raise serializers.ValidationError("Нельзя откликнуться на свой собственный заказ.")
+
+        if OrderResponse.objects.filter(order=order, executor=executor).exists():
+            self._log_attempt(order, executor, False, "Повторный отклик", data)
             raise serializers.ValidationError("Вы уже откликнулись на этот заказ.")
 
-        # Проверка баланса
-        required_amount = 50
+        recent = OrderRespondLog.objects.filter(
+            executor=executor,
+            created_at__gt=timezone.now() - timezone.timedelta(seconds=5)
+        )
+        if recent.exists():
+            raise serializers.ValidationError("Слишком частые отклики. Подождите немного.")
+
+        MAX_RESPONSES = 5
+        if order.responses.count() >= MAX_RESPONSES:
+            self._log_attempt(order, executor, False, "Достигнут лимит откликов", data)
+            raise serializers.ValidationError("Превышено количество откликов на этот заказ.")
+
+        required_amount = self._calculate_fee(order)
         if executor.balance < required_amount:
+            self._log_attempt(order, executor, False, "Недостаточно средств", data)
             raise serializers.ValidationError(f"Недостаточно средств. Нужно {required_amount}, у вас {executor.balance}.")
 
+        data['order'] = order
+        data['required_amount'] = required_amount
         return data
 
     def save(self, **kwargs):
         executor = self.context['request'].user
-        order = Order.objects.get(pk=self.validated_data['order_id'])
-        required_amount = 50
+        order = self.validated_data['order']
+        required_amount = self.validated_data['required_amount']
+        message = self.validated_data.get('message', '')
+        idempotency_key = self.validated_data.get('idempotency_key')
 
-        # Списание
-        executor.balance -= required_amount
-        executor.save()
+        with transaction.atomic():
+            if idempotency_key:
+                if OrderRespondLog.objects.select_for_update().filter(
+                    idempotency_key=idempotency_key,
+                    success=True
+                ).exists():
+                    raise Conflict("Повторный запрос с тем же ключом идемпотентности уже выполнен успешно.")
 
-        # Создание отклика
-        response = OrderResponse.objects.create(order=order, executor=executor)
+            order = Order.objects.select_for_update().get(pk=order.pk)
+            executor.refresh_from_db()
+
+            if order.responses.count() >= 5:
+                self._log_attempt(order, executor, False, "Лимит откликов (конкуренция)", self.validated_data, idempotency_key)
+                raise serializers.ValidationError("Лимит откликов уже достигнут")
+
+            if executor.balance < required_amount:
+                self._log_attempt(order, executor, False, "Недостаточно средств при списании", self.validated_data, idempotency_key)
+                raise serializers.ValidationError("Недостаточно средств при списании")
+
+            executor.balance -= required_amount
+            executor.save()
+
+            response = OrderResponse.objects.create(order=order, executor=executor, message=message)
+
+            self._log_attempt(order, executor, True, None, self.validated_data, idempotency_key)
 
         return {
             'order_response': response,
             'customer_phone': order.phone
         }
+
+    def _calculate_fee(self, order):
+        if order.budget and order.budget > 10000:
+            return 100
+        return 50
+
+    def _log_attempt(self, order, executor, success, reason, data, idempotency_key=None):
+        OrderRespondLog.objects.create(
+            order=order,
+            executor=executor,
+            success=success,
+            reason=reason,
+            idempotency_key=idempotency_key or data.get('idempotency_key')
+        )

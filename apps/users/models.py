@@ -58,6 +58,7 @@ class User(AbstractUser, PermissionsMixin):
     passport_selfie = models.ImageField(upload_to='passport/selfie/', null=True, blank=True)
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     currency = models.CharField(max_length=10, default='KGS')
+    is_blocked = models.BooleanField(default=False)
     
     objects = CustomUserManager()
 
