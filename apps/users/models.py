@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.core.files.base import ContentFile
+from apps.utils import convert_imagefile_to_webp
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, email=None, password=None, **extra_fields):
@@ -54,7 +56,10 @@ class User(AbstractUser, PermissionsMixin):
     passport_front = models.ImageField(upload_to='passport/front/', null=True, blank=True)
     passport_back = models.ImageField(upload_to='passport/back/', null=True, blank=True)
     passport_selfie = models.ImageField(upload_to='passport/selfie/', null=True, blank=True)
-
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField(max_length=10, default='KGS')
+    is_blocked = models.BooleanField(default=False)
+    
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
@@ -63,3 +68,16 @@ class User(AbstractUser, PermissionsMixin):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def save(self, *args, **kwargs):
+        self.passport_front = self._process_image_field(self.passport_front)
+        self.passport_back = self._process_image_field(self.passport_back)
+        self.passport_selfie = self._process_image_field(self.passport_selfie)
+        super().save(*args, **kwargs)
+
+    def _process_image_field(self, image_field):
+        if image_field and not image_field.name.endswith('.webp'):
+            webp_content = convert_imagefile_to_webp(image_field)
+            filename = f"{image_field.name.split('.')[0]}.webp"
+            return ContentFile(webp_content, filename)
+        return image_field
