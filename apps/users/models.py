@@ -81,3 +81,8 @@ class User(AbstractUser, PermissionsMixin):
             filename = f"{image_field.name.split('.')[0]}.webp"
             return ContentFile(webp_content, filename)
         return image_field
+        
+    @property
+    def average_rating(self):
+        from django.db.models import Avg
+        return self.reviews.aggregate(avg=Avg('rating'))['avg'] or 0

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.orders.models import Category, Order, OrderPhoto, OrderResponse, OrderRespondLog
+from apps.orders.models import Category, Order, OrderPhoto, OrderResponse, OrderRespondLog, Review
 from apps.users.models import User
 from django.utils import timezone
 from django.db import transaction
@@ -8,7 +8,7 @@ from rest_framework.exceptions import APIException
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'title']
+        fields = ['id', 'title', 'image']
 
 
 class OrderPhotoSerializer(serializers.ModelSerializer):
@@ -41,6 +41,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_at',
             'photos',
             'photo_files',
+            'subregion',
         ]
         read_only_fields = ['customer', 'created_at', 'photos']
 
@@ -167,3 +168,24 @@ class OrderRespondSerializer(serializers.Serializer):
             reason=reason,
             idempotency_key=idempotency_key or data.get('idempotency_key')
         )
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'order', 'executor', 'customer', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'executor', 'customer', 'created_at']
+
+    def validate(self, data):
+        order = data.get('order')
+        if Review.objects.filter(order=order).exists():
+            raise serializers.ValidationError("Отзыв на этот заказ уже существует.")
+        if order.status != 'completed':
+            raise serializers.ValidationError("Можно оставить отзыв только после завершения заказа.")
+        return data
+
+    def create(self, validated_data):
+        request = self.context['request']
+        customer = request.user
+        order = validated_data['order']
+        executor = order.responses.first().executor  # предполагаем, что есть один отклик
+        return Review.objects.create(customer=customer, executor=executor, **validated_data)

@@ -116,6 +116,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    average_rating = serializers.FloatField(read_only=True)
     
     class Meta:
         model = User
@@ -127,7 +128,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'region_id',
             'profession_id',
             'currency',
-            'balance'
+            'balance',
+            'average_rating'
         ]
         read_only_fields = ['username', 'email', 'phone']
 
