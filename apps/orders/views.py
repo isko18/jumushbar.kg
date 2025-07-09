@@ -26,6 +26,16 @@ class OrderViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(customer=self.request.user)
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsCustomerPermission])
+    def complete(self, request, pk=None):
+        order = self.get_object()
+        if order.status != 'active':
+            return Response({"detail": "Заказ уже завершён или отменён."}, status=400)
+        
+        order.status = 'completed'
+        order.save()
+        return Response({"detail": "Заказ успешно завершён."}, status=200)
+
 
 class OrderListAPI(mixins.ListModelMixin,viewsets.GenericViewSet):
     queryset = Order.objects.all()

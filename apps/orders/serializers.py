@@ -185,7 +185,18 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context['request']
-        customer = request.user
         order = validated_data['order']
-        executor = order.responses.first().executor  # предполагаем, что есть один отклик
-        return Review.objects.create(customer=customer, executor=executor, **validated_data)
+        
+        # Найдём исполнителя через отклик
+        response = order.responses.first()
+        if not response:
+            raise serializers.ValidationError("На заказ не было откликов.")
+        
+        executor = response.executor
+        return Review.objects.create(
+            customer=request.user,
+            executor=executor,
+            order=order,
+            rating=validated_data['rating'],
+            comment=validated_data.get('comment', '')
+        )
