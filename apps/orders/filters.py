@@ -1,7 +1,6 @@
 import django_filters
 from apps.orders.models import Order
 
-
 class OrderFilter(django_filters.FilterSet):
     budget_min = django_filters.NumberFilter(field_name='budget', lookup_expr='gte')
     budget_max = django_filters.NumberFilter(field_name='budget', lookup_expr='lte')
@@ -10,6 +9,7 @@ class OrderFilter(django_filters.FilterSet):
     deadline_day = django_filters.NumberFilter(method='filter_by_day')
     deadline_month = django_filters.NumberFilter(method='filter_by_month')
     deadline_year = django_filters.NumberFilter(method='filter_by_year')
+    subregion = django_filters.NumberFilter(field_name='subregion_id')
 
     class Meta:
         model = Order

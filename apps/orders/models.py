@@ -1,10 +1,12 @@
 from django.db import models
 from django.core.files.base import ContentFile
 from apps.utils import convert_imagefile_to_webp
-from apps.users.models import User
+from apps.users.models import User, UserSubRegion, Profession
 
 class Category(models.Model):
     title = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='categories')
+    profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name = "Категория"
@@ -32,10 +34,12 @@ class Order(models.Model):
     location = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='active')
+    subregion = models.ForeignKey(UserSubRegion, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name = "Заказ"
         verbose_name_plural = "Заказы"
+        ordering = ['-created_at']  # ← новая строка
 
     def __str__(self):
         return f"Заказ #{self.pk} от {self.customer}"
@@ -74,3 +78,19 @@ class OrderRespondLog(models.Model):
     success = models.BooleanField()
     reason = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Review(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='review')
+    executor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_reviews')
+    rating = models.PositiveSmallIntegerField()  # от 1 до 5
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+
+    def __str__(self):
+        return f"Отзыв {self.rating}★ от {self.customer} исполнителю {self.executor}"
