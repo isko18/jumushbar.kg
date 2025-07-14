@@ -116,6 +116,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    subregion_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserSubRegion.objects.all(),
+        source='subregion',
+        write_only=True,
+        required=False
+    )
     average_rating = serializers.FloatField(read_only=True)
     
     class Meta:
@@ -126,6 +132,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'full_name',
             'phone',
             'region_id',
+            'subregion_id',
             'profession_id',
             'currency',
             'balance',
