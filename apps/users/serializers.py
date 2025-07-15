@@ -4,7 +4,20 @@ from .models import User, UserRegion, UserSubRegion, Profession
 from core.passport_classifier.utils import predict_passport_photo
 import tempfile, random
 from django.core.mail import send_mail
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.conf import settings
+
+class TokenWithRoleSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role  # добавим роль в payload
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['role'] = self.user.role  # добавим роль в ответ
+        return data
 
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(

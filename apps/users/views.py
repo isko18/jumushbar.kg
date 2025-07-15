@@ -15,6 +15,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from random import randint
 
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class TokenObtainPairWithRoleView(TokenObtainPairView):
+    serializer_class = TokenWithRoleSerializer
+
 
 class RegisterView(mixins.CreateModelMixin, generics.GenericAPIView):
     queryset = User.objects.all()
@@ -195,6 +201,7 @@ class LoginWithCodeVerifyView(APIView):
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            
         }, status=200)
 
 class PasswordResetRequestView(APIView):
