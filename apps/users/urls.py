@@ -19,7 +19,8 @@ urlpatterns = [
     path('user/role/', SetRoleView.as_view()),                          # Установка роли
     path('user/profession/', SetProfessionView.as_view()),              # Установка профессии
     path('user/verify/', UploadDocumentsView.as_view()),                # Загрузка документов
-    path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Получение JWT токенов
+    path('api/auth/token/', TokenObtainPairWithRoleView.as_view(), name='token_obtain_pair'),
+    # path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Получение JWT токенов
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Обновление токенов
     path('verify-passport/', PassportPhotoUploadView.as_view(), name='verify-passport'),# Проверка паспорта AI
     path('user/profile/', UserProfileView.as_view(), name='user-profile'),              # Профиль пользователя
