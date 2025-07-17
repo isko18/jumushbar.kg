@@ -138,6 +138,10 @@ class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         return self.request.user
 
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return Response(serializer.data)
+
     def delete(self, request, *args, **kwargs):
         user = self.get_object()
         user.delete()

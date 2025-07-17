@@ -11,12 +11,12 @@ class TokenWithRoleSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['role'] = user.role  # добавим роль в payload
+        token['role'] = user.role
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        data['role'] = self.user.role  # добавим роль в ответ
+        data['role'] = self.user.role  
         return data
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -120,21 +120,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
     region_id = serializers.PrimaryKeyRelatedField(
         queryset=UserRegion.objects.all(),
         source='subregion.region',
-        write_only=True,
         required=False
     )
+    region = serializers.CharField(source='subregion.region.name', read_only=True)
+
     profession_id = serializers.PrimaryKeyRelatedField(
         queryset=Profession.objects.all(),
         source='profession',
-        write_only=True,
         required=False
     )
+    profession = serializers.CharField(source='profession.name', read_only=True)
+
     subregion_id = serializers.PrimaryKeyRelatedField(
         queryset=UserSubRegion.objects.all(),
         source='subregion',
-        write_only=True,
         required=False
     )
+    subregion = serializers.CharField(source='subregion.name', read_only=True)
+
     average_rating = serializers.FloatField(read_only=True)
     
     class Meta:
@@ -145,13 +148,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'full_name',
             'phone',
             'region_id',
+            'region',
             'subregion_id',
+            'subregion',
             'profession_id',
+            'profession',
             'currency',
             'balance',
             'average_rating'
         ]
         read_only_fields = ['username', 'email', 'phone']
+
 
     def update(self, instance, validated_data):
         if 'full_name' in validated_data:
