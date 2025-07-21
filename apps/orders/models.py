@@ -5,7 +5,7 @@ from apps.users.models import User, UserSubRegion, Profession
 
 class Category(models.Model):
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='categories')
+    image = models.ImageField(upload_to='categories', blank=True, null=True)
     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:

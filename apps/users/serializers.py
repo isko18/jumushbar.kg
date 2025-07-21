@@ -137,7 +137,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         required=False
     )
     subregion = serializers.CharField(source='subregion.name', read_only=True)
-
+    is_passport_verified = serializers.SerializerMethodField()
     average_rating = serializers.FloatField(read_only=True)
     
     class Meta:
@@ -155,7 +155,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'profession',
             'currency',
             'balance',
-            'average_rating'
+            'average_rating',
+            'is_passport_verified', 
         ]
         read_only_fields = ['username', 'email', 'phone']
 
@@ -171,6 +172,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.currency = validated_data['currency']
         instance.save()
         return instance
+
+    def get_is_passport_verified(self, obj):
+        if (obj.role or '').lower() != 'исполнитель':
+            return False
+        return all([
+            obj.passport_selfie,
+            obj.passport_front,
+            obj.passport_back,
+            obj.is_verified
+        ])
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
