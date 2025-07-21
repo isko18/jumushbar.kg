@@ -53,6 +53,7 @@ class OrderListAPI(mixins.ListModelMixin,viewsets.GenericViewSet):
         include_all = self.request.query_params.get('include_all') == 'true'
         category_param = self.request.query_params.get('category')
         subregion_param = self.request.query_params.get('subregion')
+        is_negotiable = django_filters.BooleanFilter(field_name='is_negotiable')
 
         if filter_type == 'new':
             queryset = queryset.filter(created_at__gte=now - timedelta(hours=24))
