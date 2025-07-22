@@ -124,22 +124,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
     )
     region = serializers.CharField(source='subregion.region.name', read_only=True)
 
-    profession_id = serializers.PrimaryKeyRelatedField(
+    # Профессии
+    professions = ProfessionSerializer(many=True, read_only=True)
+    profession_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
         queryset=Profession.objects.all(),
-        source='profession',
+        source='professions',
+        write_only=True,
         required=False
     )
-    profession = serializers.CharField(source='profession.name', read_only=True)
 
+    # Подрегион
     subregion_id = serializers.PrimaryKeyRelatedField(
         queryset=UserSubRegion.objects.all(),
         source='subregion',
         required=False
     )
     subregion = serializers.CharField(source='subregion.name', read_only=True)
+
+    # Доп поля
     is_passport_verified = serializers.SerializerMethodField()
     average_rating = serializers.FloatField(read_only=True)
-    
+
     class Meta:
         model = User
         fields = [
@@ -151,21 +157,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'region',
             'subregion_id',
             'subregion',
-            'profession_id',
-            'profession',
+            'profession_ids',
+            'professions',
             'currency',
             'balance',
             'average_rating',
-            'is_passport_verified', 
+            'is_passport_verified',
         ]
         read_only_fields = ['username', 'email', 'phone']
-
 
     def update(self, instance, validated_data):
         if 'full_name' in validated_data:
             instance.full_name = validated_data['full_name']
-        if 'profession' in validated_data:
-            instance.profession = validated_data['profession']
+        if 'professions' in validated_data:
+            instance.professions.set(validated_data['professions'])
         if 'subregion' in validated_data:
             instance.subregion = validated_data['subregion']
         if 'currency' in validated_data:
@@ -182,7 +187,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             obj.passport_back,
             obj.is_verified
         ])
-
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()

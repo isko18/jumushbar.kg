@@ -9,6 +9,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from apps.orders.filters import OrderFilter
 from django.utils import timezone
 from datetime import timedelta
+import django_filters
 
 class CategoriesListAPI(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Category.objects.all()
@@ -38,35 +39,47 @@ class OrderViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(orders, many=True)
         return Response(serializer.data)
 
-
-class OrderListAPI(mixins.ListModelMixin,viewsets.GenericViewSet):
-    queryset = Order.objects.all()
+class OrderListAPI(mixins.ListModelMixin, viewsets.GenericViewSet):
+    queryset = Order.objects.all().order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = OrderFilter
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset().filter(status='active')
-        now = timezone.now()
+# class OrderListAPI(mixins.ListModelMixin,viewsets.GenericViewSet):
+#     queryset = Order.objects.all()
+#     serializer_class = OrderSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#     filter_backends = [DjangoFilterBackend]
+#     filterset_class = OrderFilter
 
-        filter_type = self.request.query_params.get('filter')
-        include_all = self.request.query_params.get('include_all') == 'true'
-        category_param = self.request.query_params.get('category')
-        subregion_param = self.request.query_params.get('subregion')
-        is_negotiable = django_filters.BooleanFilter(field_name='is_negotiable')
+#     def get_queryset(self):
+#         return Order.objects.all()
 
-        if filter_type == 'new':
-            queryset = queryset.filter(created_at__gte=now - timedelta(hours=24))
 
-        elif not include_all and user.role == "Исполнитель":
-            if user.profession and not category_param:
-                queryset = queryset.filter(category__profession=user.profession)
-            if user.subregion and not subregion_param:
-                queryset = queryset.filter(subregion=user.subregion)
-
-        return queryset.order_by('-created_at') 
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     queryset = super().get_queryset()
+    #     now = timezone.now()
+# 
+    #     filter_type = self.request.query_params.get('filter')
+    #     category_param = self.request.query_params.get('category')
+    #     subregion_param = self.request.query_params.get('subregion')
+# 
+    #     # Фильтрация по времени (новые заказы)
+    #     if filter_type == 'new':
+    #         queryset = queryset.filter(created_at__gte=now - timedelta(hours=24))
+# 
+    #     # 👇 Фильтруем только если пользователь — Исполнитель
+    #     if user.role == "Исполнитель":
+    #         # Фильтрация по профессиям, если не указан фильтр по категории
+    #         if user.professions.exists() and not category_param:
+    #             queryset = queryset.filter(category__profession__in=user.professions.all())
+    #         # Фильтрация по подрегиону, если не указан фильтр в параметрах
+    #         if user.subregion and not subregion_param:
+    #             queryset = queryset.filter(subregion=user.subregion)
+# 
+    #     return queryset.order_by('-created_at')
 
 class OrderRespondViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsExecutorPermission]

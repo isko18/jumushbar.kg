@@ -1,4 +1,3 @@
-# user/views.py
 from rest_framework import generics, mixins, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -14,7 +13,6 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from random import randint
-
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 
@@ -97,18 +95,24 @@ class SetRoleView(generics.UpdateAPIView):
         return Response({"message": "Роль обновлена"})
 
 class SetProfessionView(generics.UpdateAPIView):
-    serializer_class = ProfessionSerializer
     permission_classes = [IsAuthenticated]
 
     def update(self, request, *args, **kwargs):
-        profession_id = request.data.get("profession_id")
-        try:
-            profession = Profession.objects.get(id=profession_id)
-            request.user.profession = profession
-            request.user.save()
-            return Response({"message": "Profession updated"})
-        except Profession.DoesNotExist:
-            return Response({"error": "Profession not found"}, status=404)
+        profession_ids = request.data.get("profession_ids")
+
+        if not isinstance(profession_ids, list):
+            return Response({"error": "profession_ids должен быть списком"}, status=400)
+
+        professions = Profession.objects.filter(id__in=profession_ids)
+
+        if not professions.exists():
+            return Response({"error": "Профессии не найдены"}, status=404)
+
+        request.user.professions.set(professions)
+        request.user.save()
+
+        return Response({"message": "Профессии успешно обновлены"})
+
 
 class UploadDocumentsView(generics.UpdateAPIView):
     serializer_class = UploadDocumentsSerializer
