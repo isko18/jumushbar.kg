@@ -50,7 +50,7 @@ class User(AbstractUser, PermissionsMixin):
     phone = models.CharField(max_length=20)
     is_verified = models.BooleanField(default=False)
     role = models.CharField(null=True, blank=True, choices=ROLE, max_length=15, verbose_name='Роли')
-    profession = models.ForeignKey(Profession, null=True, blank=True, on_delete=models.SET_NULL)
+    professions = models.ManyToManyField(Profession, blank=True)
     subregion = models.ForeignKey(UserSubRegion, null=True, blank=True, on_delete=models.SET_NULL)
     email_verification_code = models.CharField(max_length=6, blank=True, null=True)
     passport_front = models.ImageField(upload_to='passport/front/', null=True, blank=True)

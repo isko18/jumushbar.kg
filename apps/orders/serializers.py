@@ -42,6 +42,8 @@ class OrderSerializer(serializers.ModelSerializer):
             'photos',
             'photo_files',
             'subregion',
+            'latitude',  
+            'longitude', 
         ]
         read_only_fields = ['customer', 'created_at', 'photos']
 
