@@ -39,6 +39,21 @@ class OrderViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(orders, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], url_path='complete')
+    def complete_order(self, request, pk=None):
+        order = self.get_object()
+
+        if order.customer != request.user:
+            return Response({'detail': 'Вы не являетесь владельцем этого заказа.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.status != 'active':
+            return Response({'detail': 'Только активный заказ можно завершить.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = 'completed'
+        order.save()
+
+        return Response({'detail': 'Заказ успешно завершён.'}, status=status.HTTP_200_OK)
+
 class OrderListAPI(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Order.objects.all().order_by('-created_at')
     serializer_class = OrderSerializer
