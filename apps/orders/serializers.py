@@ -6,9 +6,10 @@ from django.db import transaction
 from rest_framework.exceptions import APIException
 
 class CategorySerializer(serializers.ModelSerializer):
+    order_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Category
-        fields = ['id', 'title', 'image']
+        fields = ['id', 'title', 'image', 'order_count']
 
 
 class OrderPhotoSerializer(serializers.ModelSerializer):
@@ -189,7 +190,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         request = self.context['request']
         order = validated_data['order']
         
-        # Найдём исполнителя через отклик
         response = order.responses.first()
         if not response:
             raise serializers.ValidationError("На заказ не было откликов.")

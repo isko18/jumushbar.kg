@@ -12,7 +12,7 @@ from datetime import timedelta
 import django_filters
 
 class CategoriesListAPI(viewsets.GenericViewSet, mixins.ListModelMixin):
-    queryset = Category.objects.all()
+    queryset = Category.objects.annotate(order_count=Count('order'))
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
 
