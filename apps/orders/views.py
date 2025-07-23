@@ -10,6 +10,7 @@ from apps.orders.filters import OrderFilter
 from django.utils import timezone
 from datetime import timedelta
 import django_filters
+from django.db.models import Count
 
 class CategoriesListAPI(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Category.objects.annotate(order_count=Count('order'))
