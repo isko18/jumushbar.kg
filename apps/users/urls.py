@@ -29,5 +29,6 @@ urlpatterns = [
     path('auth/password-reset-request/', PasswordResetRequestView.as_view(), name='password-reset-request'),  # Сброс пароля шаг 1
     path('auth/password-reset-verify/', PasswordResetCodeVerifyView.as_view(), name='password-reset-verify'), # Сброс пароля шаг 2
     path('auth/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'), # Сброс пароля шаг 3
+    path('auth/resend-verification-code/', ResendEmailVerificationCodeView.as_view(), name='resend-verification-code'),
     path('', include(router.urls)),  # Роуты справочников (регионов, подрегионов, профессий)
 ]

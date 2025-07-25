@@ -66,6 +66,30 @@ class VerifyEmailView(generics.GenericAPIView):
         user.save()
         return Response({"message": "Email подтвержден"})
 
+class ResendEmailVerificationCodeView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResendEmailVerificationCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+
+        code = f"{randint(1000, 9999)}"
+        user.email_verification_code = code
+        user.save()
+
+        send_mail(
+            subject="Код подтверждения Email",
+            message=f"Ваш новый код подтверждения: {code}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False
+        )
+
+        return Response({"message": "Код подтверждения отправлен повторно."})
+
 
 class RegionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = UserRegion.objects.all()
