@@ -47,6 +47,14 @@ class VerifyEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField()
 
+class ResendEmailVerificationCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Пользователь с таким email не найден.")
+        return value
+
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRegion
