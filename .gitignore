@@ -94,6 +94,7 @@ coverage.xml
 # celery 
 celerybeat-schedule.* 
 passport_model.keras
+passport_model.tflite
 passport_model.h5
 *.h5
 *.keras
