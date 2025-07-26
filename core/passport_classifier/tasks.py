@@ -30,11 +30,15 @@ def validate_passport_images_task(self, user_id, selfie_path, front_path, back_p
         front_ok, front_msg = validate_photo(front_path, "front")
         back_ok, back_msg = validate_photo(back_path, "back")
 
-        # Запись статуса в модель пользователя
+        # Определение результата
         all_passed = all([face_ok, front_ok, back_ok])
         user.passport_status = "validated" if all_passed else "rejected"
+
+        # ✅ Добавляем флаг верификации
+        user.is_verified = all_passed
+
         user.save()
-        logger.info(f"🎯 [User #{user_id}] Итоговый статус: {user.passport_status}")
+        logger.info(f"🎯 [User #{user_id}] Итоговый статус: {user.passport_status}, is_verified={user.is_verified}")
 
         # Вернуть краткое резюме
         return {
