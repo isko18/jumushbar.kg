@@ -55,47 +55,43 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         return Response({'detail': 'Заказ успешно завершён.'}, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='return-to-active')
+    def return_to_active(self, request, pk=None):
+        order = self.get_object()
+
+        if order.customer != request.user:
+            return Response({'detail': 'Вы не владелец этого заказа.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.status != 'completed':
+            return Response({'detail': 'Только завершённый заказ можно вернуть в активный.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = 'active'
+        order.save()
+        return Response({'detail': 'Заказ снова активен.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel_order(self, request, pk=None):
+        order = self.get_object()
+
+        if order.customer != request.user:
+            return Response({'detail': 'Вы не являетесь владельцем этого заказа.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.status in ['completed', 'cancelled']:
+            return Response({'detail': 'Этот заказ уже завершён или отменён.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = 'cancelled'
+        order.save()
+
+        return Response({'detail': 'Заказ успешно отменён.'}, status=status.HTTP_200_OK)
+
+
+
 class OrderListAPI(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Order.objects.all().order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = OrderFilter
-
-# class OrderListAPI(mixins.ListModelMixin,viewsets.GenericViewSet):
-#     queryset = Order.objects.all()
-#     serializer_class = OrderSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-#     filter_backends = [DjangoFilterBackend]
-#     filterset_class = OrderFilter
-
-#     def get_queryset(self):
-#         return Order.objects.all()
-
-
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     queryset = super().get_queryset()
-    #     now = timezone.now()
-# 
-    #     filter_type = self.request.query_params.get('filter')
-    #     category_param = self.request.query_params.get('category')
-    #     subregion_param = self.request.query_params.get('subregion')
-# 
-    #     # Фильтрация по времени (новые заказы)
-    #     if filter_type == 'new':
-    #         queryset = queryset.filter(created_at__gte=now - timedelta(hours=24))
-# 
-    #     # 👇 Фильтруем только если пользователь — Исполнитель
-    #     if user.role == "Исполнитель":
-    #         # Фильтрация по профессиям, если не указан фильтр по категории
-    #         if user.professions.exists() and not category_param:
-    #             queryset = queryset.filter(category__profession__in=user.professions.all())
-    #         # Фильтрация по подрегиону, если не указан фильтр в параметрах
-    #         if user.subregion and not subregion_param:
-    #             queryset = queryset.filter(subregion=user.subregion)
-# 
-    #     return queryset.order_by('-created_at')
 
 class OrderRespondViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsExecutorPermission]

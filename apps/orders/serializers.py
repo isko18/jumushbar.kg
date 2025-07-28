@@ -151,12 +151,16 @@ class OrderRespondSerializer(serializers.Serializer):
 
             response = OrderResponse.objects.create(order=order, executor=executor, message=message)
 
+            order.status = 'completed'
+            order.save()
+
             self._log_attempt(order, executor, True, None, self.validated_data, idempotency_key)
 
         return {
             'order_response': response,
             'customer_phone': order.phone
         }
+
 
     def _calculate_fee(self, order):
         if order.budget and order.budget > 10000:
