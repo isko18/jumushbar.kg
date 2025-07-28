@@ -17,7 +17,7 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('full_name', 'phone', 'role', 'professions', 'subregion', 'balance')
         }),
         ('Паспортные данные', {
-            'fields': ('passport_front', 'passport_back', 'passport_selfie')
+            'fields': ('passport_front', 'passport_back', 'passport_selfie', 'passport_id', 'personal_number')
         }),
         ('Подтверждение', {
             'fields': ('is_verified', 'email_verification_code')

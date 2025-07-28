@@ -148,6 +148,7 @@ class UploadDocumentsView(generics.UpdateAPIView):
         serializer.save()
         return Response({"message": "Documents uploaded"})
 
+
 class PassportPhotoUploadView(APIView):
     permission_classes = [IsAuthenticated, IsExecutorPermission]
 
@@ -155,7 +156,10 @@ class PassportPhotoUploadView(APIView):
         serializer = PassportPhotoUploadSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response({"detail": "Паспортные фото успешно проверены и сохранены."}, status=status.HTTP_200_OK)
+            return Response(
+                {"detail": "Фото загружены. Идёт проверка. Вы получите уведомление после завершения."},
+                status=status.HTTP_202_ACCEPTED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(generics.RetrieveUpdateDestroyAPIView):

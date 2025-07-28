@@ -6,6 +6,9 @@ import tempfile, random
 from django.core.mail import send_mail
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.conf import settings
+from core.passport_classifier.tasks import validate_passport_images_task
+import tempfile
+from apps.users.utils import extract_passport_info_from_image
 
 class TokenWithRoleSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -91,37 +94,70 @@ class PassportPhotoUploadSerializer(serializers.Serializer):
     passport_back = serializers.ImageField(required=True)
 
     def validate(self, data):
-        with tempfile.NamedTemporaryFile(suffix='.jpg') as tmp_selfie, \
-             tempfile.NamedTemporaryFile(suffix='.jpg') as tmp_front, \
-             tempfile.NamedTemporaryFile(suffix='.jpg') as tmp_back:
+        errors = {}
 
-            for chunk in data['passport_selfie'].chunks():
-                tmp_selfie.write(chunk)
-            tmp_selfie.flush()
+        def write_temp(image_field, suffix):
+            tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+            for chunk in image_field.chunks():
+                tmp.write(chunk)
+            tmp.flush()
+            return tmp.name
 
-            for chunk in data['passport_front'].chunks():
-                tmp_front.write(chunk)
-            tmp_front.flush()
+        # Сохраняем временные пути
+        self.temp_selfie_path = write_temp(data['passport_selfie'], '.jpg')
+        self.temp_front_path = write_temp(data['passport_front'], '.jpg')
+        self.temp_back_path = write_temp(data['passport_back'], '.jpg')
 
-            for chunk in data['passport_back'].chunks():
-                tmp_back.write(chunk)
-            tmp_back.flush()
-            face_ok = predict_passport_photo(tmp_selfie.name, expected_type='face')
-            front_ok = predict_passport_photo(tmp_front.name, expected_type='front')
-            back_ok = predict_passport_photo(tmp_back.name, expected_type='back')
+        # Валидация модели
+        face_ok, face_msg = predict_passport_photo(self.temp_selfie_path, expected_type='face', return_reason=True)
+        front_ok, front_msg = predict_passport_photo(self.temp_front_path, expected_type='front', return_reason=True)
+        back_ok, back_msg = predict_passport_photo(self.temp_back_path, expected_type='back', return_reason=True)
 
-            if not (face_ok and front_ok and back_ok):
-                raise serializers.ValidationError("Одно или несколько фото не прошли проверку AI.")
+        if not face_ok:
+            errors['passport_selfie'] = face_msg
+        if not front_ok:
+            errors['passport_front'] = front_msg
+        if not back_ok:
+            errors['passport_back'] = back_msg
+
+        # 🔎 OCR извлечение ID и ИНН
+        passport_id, personal_number = extract_passport_info_from_image(self.temp_back_path)
+
+        if not passport_id:
+            errors['passport_back'] = errors.get('passport_back', '') + ' Не удалось распознать ID паспорта.'
+        if not personal_number:
+            errors['passport_back'] = errors.get('passport_back', '') + ' Не удалось распознать ИНН.'
+
+        self.passport_id = passport_id
+        self.personal_number = personal_number
+
+        if errors:
+            raise serializers.ValidationError(errors)
 
         return data
 
     def save(self, **kwargs):
         user = self.context['request'].user
+
+        # Сохраняем изображения
         user.passport_selfie.save(self.validated_data['passport_selfie'].name, self.validated_data['passport_selfie'])
         user.passport_front.save(self.validated_data['passport_front'].name, self.validated_data['passport_front'])
         user.passport_back.save(self.validated_data['passport_back'].name, self.validated_data['passport_back'])
-        user.is_verified = True
+
+        # 🧠 Сохраняем паспортные данные
+        user.passport_id = self.passport_id
+        user.personal_number = self.personal_number
         user.save()
+
+        # 🟢 Валидация Celery-задачей
+        from core.passport_classifier.tasks import validate_passport_images_task
+        validate_passport_images_task.delay(
+            user.id,
+            self.temp_selfie_path,
+            self.temp_front_path,
+            self.temp_back_path
+        )
+
         return user
         
 class UserProfileSerializer(serializers.ModelSerializer):
