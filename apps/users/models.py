@@ -59,7 +59,9 @@ class User(AbstractUser, PermissionsMixin):
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     currency = models.CharField(max_length=10, default='KGS')
     is_blocked = models.BooleanField(default=False)
-    
+    passport_id = models.CharField(max_length=50, blank=True, null=True)
+    personal_number = models.CharField(max_length=50, blank=True, null=True)
+
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
