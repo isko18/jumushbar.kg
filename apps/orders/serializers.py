@@ -135,6 +135,17 @@ class OrderRespondSerializer(serializers.Serializer):
                 ).exists():
                     raise Conflict("Повторный запрос с тем же ключом идемпотентности уже выполнен успешно.")
 
+            # Проверка: уже откликался ли исполнитель ранее
+            existing_response = OrderResponse.objects.filter(order=order, executor=executor).first()
+            if existing_response:
+                # Не списываем деньги, просто логируем повторный успешный запрос (без дублирования записи)
+                self._log_attempt(order, executor, True, "Повторный доступ — отклик уже есть", self.validated_data, idempotency_key)
+                return {
+                    'order_response': existing_response,
+                    'customer_phone': order.phone
+                }
+
+            # Остальная логика — проверка лимита, баланса и списание
             order = Order.objects.select_for_update().get(pk=order.pk)
             executor.refresh_from_db()
 
@@ -151,15 +162,13 @@ class OrderRespondSerializer(serializers.Serializer):
 
             response = OrderResponse.objects.create(order=order, executor=executor, message=message)
 
-            order.status = 'completed'
-            order.save()
-
             self._log_attempt(order, executor, True, None, self.validated_data, idempotency_key)
 
         return {
             'order_response': response,
             'customer_phone': order.phone
         }
+
 
 
     def _calculate_fee(self, order):
