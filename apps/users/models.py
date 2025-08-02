@@ -88,3 +88,17 @@ class User(AbstractUser, PermissionsMixin):
     def average_rating(self):
         from django.db.models import Avg
         return self.reviews.aggregate(avg=Avg('rating'))['avg'] or 0
+
+
+class LegalDocument(models.Model):
+    DOCUMENT_CHOICES = (
+        ('privacy_policy', 'Политика конфиденциальности'),
+        ('public_offer', 'Публичная оферта'),
+    )
+
+    doc_type = models.CharField(max_length=32, choices=DOCUMENT_CHOICES, unique=True)
+    content = models.TextField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.get_doc_type_display()

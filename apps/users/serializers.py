@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from .models import User, UserRegion, UserSubRegion, Profession
+from .models import User, UserRegion, UserSubRegion, Profession, LegalDocument
 from core.passport_classifier.utils import predict_passport_photo
 import tempfile, random
 from django.core.mail import send_mail
@@ -282,3 +282,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.email_verification_code = None
         user.save()
         return user
+
+
+class LegalDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalDocument
+        fields = ['doc_type', 'content', 'updated_at']

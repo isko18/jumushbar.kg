@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
 from random import randint
-from .models import User, UserRegion, UserSubRegion, Profession
+from .models import User, UserRegion, UserSubRegion, Profession, LegalDocument
 from .serializers import *
 from core.passport_classifier.tasks import validate_passport_images_task
 from apps.users.permissions import IsExecutorPermission
@@ -265,3 +265,9 @@ class PasswordResetConfirmView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "Пароль успешно сброшен"})
+
+class LegalDocumentsView(APIView):
+    def get(self, request):
+        docs = LegalDocument.objects.all()
+        serializer = LegalDocumentSerializer(docs, many=True)
+        return Response({doc['doc_type']: doc['content'] for doc in serializer.data})
