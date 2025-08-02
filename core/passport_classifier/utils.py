@@ -52,3 +52,5 @@ def predict_passport_photo(image_file, expected_type=None, return_reason=False, 
         return (True, None) if return_reason else True
 
     return (predicted_label, None) if return_reason else predicted_label
+
+
