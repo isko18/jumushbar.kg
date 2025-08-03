@@ -43,9 +43,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_yasg',
+    'ckeditor',
 
     'apps.users',
     'apps.orders',
+    'apps.settings',
 ]
 
 MIDDLEWARE = [
@@ -63,7 +65,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -249,4 +251,16 @@ JAZZMIN_SETTINGS = {
         "success": "btn-success"
     },
     "actions_sticky_top": False
+}
+
+# ckeditor
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_JQUERY_URL = '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'  # URL to jQuery
+CKEDITOR_IMAGE_BACKEND = "pillow"  # Путь к пакету Pillow для обработки изображений
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Custom',  # Вы можете настроить свою собственную панель инструментов CKEditor
+        'height': 300,
+        'width': 800,
+    },
 }

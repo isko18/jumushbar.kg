@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from .models import User, UserRegion, UserSubRegion, Profession
+from .models import User, UserRegion, UserSubRegion, Profession, LegalDocument
 from core.passport_classifier.utils import predict_passport_photo
 import tempfile, random
 from django.core.mail import send_mail
@@ -103,12 +103,10 @@ class PassportPhotoUploadSerializer(serializers.Serializer):
             tmp.flush()
             return tmp.name
 
-        # Сохраняем временные пути
         self.temp_selfie_path = write_temp(data['passport_selfie'], '.jpg')
         self.temp_front_path = write_temp(data['passport_front'], '.jpg')
         self.temp_back_path = write_temp(data['passport_back'], '.jpg')
 
-        # Валидация модели
         face_ok, face_msg = predict_passport_photo(self.temp_selfie_path, expected_type='face', return_reason=True)
         front_ok, front_msg = predict_passport_photo(self.temp_front_path, expected_type='front', return_reason=True)
         back_ok, back_msg = predict_passport_photo(self.temp_back_path, expected_type='back', return_reason=True)
@@ -120,16 +118,12 @@ class PassportPhotoUploadSerializer(serializers.Serializer):
         if not back_ok:
             errors['passport_back'] = back_msg
 
-        # 🔎 OCR извлечение ID и ИНН
+        # 🔍 OCR
         passport_id, personal_number = extract_passport_info_from_image(self.temp_back_path)
 
-        if not passport_id:
-            errors['passport_back'] = errors.get('passport_back', '') + ' Не удалось распознать ID паспорта.'
-        if not personal_number:
-            errors['passport_back'] = errors.get('passport_back', '') + ' Не удалось распознать ИНН.'
-
-        self.passport_id = passport_id
-        self.personal_number = personal_number
+        # ✅ Вместо ошибок — просто сохраняем, даже если None
+        self.passport_id = passport_id or ''
+        self.personal_number = personal_number or ''
 
         if errors:
             raise serializers.ValidationError(errors)
@@ -288,3 +282,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.email_verification_code = None
         user.save()
         return user
+
+
+class LegalDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalDocument
+        fields = ['doc_type', 'content', 'updated_at']
