@@ -193,3 +193,13 @@ class ReviewSerializer(serializers.ModelSerializer):
             rating=validated_data['rating'],
             comment=validated_data.get('comment', '')
         )
+
+class BalanceUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['balance']
+
+    def validate_balance(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Баланс не может быть отрицательным.")
+        return value

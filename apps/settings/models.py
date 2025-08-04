@@ -47,3 +47,16 @@ class CardPaymentTerms(models.Model):
 
     def __str__(self):
         return "Условия оплаты картой"
+
+class ImageBanner(models.Model):
+    image = models.ImageField(
+        upload_to='banner',
+        verbose_name='Фото'
+    )
+
+    def __str__(self):
+        return "Фото на баннере"
+
+    class Meta:
+        verbose_name = 'Фото для баннера'
+        verbose_name_plural = 'Фото для баннера'

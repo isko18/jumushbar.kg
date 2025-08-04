@@ -84,8 +84,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         return Response({'detail': 'Заказ успешно отменён.'}, status=status.HTTP_200_OK)
 
-
-
 class OrderListAPI(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Order.objects.all().order_by('-created_at')
     serializer_class = OrderSerializer
@@ -113,3 +111,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return self.queryset.filter(customer=self.request.user)
+
+class BalanceUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = BalanceUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Баланс обновлён", "balance": user.balance}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
