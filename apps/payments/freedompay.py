@@ -4,6 +4,9 @@ import hashlib
 import random
 import string
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FreedomPayClient:
@@ -17,10 +20,21 @@ class FreedomPayClient:
 
     @classmethod
     def _generate_signature(cls, params: dict):
-        sorted_items = sorted(params.items())
-        sign_data = ';'.join([str(value) for _, value in sorted_items])
-        sign_string = f"init_payment.php;{sign_data};{cls.SECRET_KEY}"
+        # Убираем pg_sig, если есть
+        params = {k: v for k, v in params.items() if k != 'pg_sig'}
+
+        # Сортировка по ключам (алфавитный порядок)
+        sorted_keys = sorted(params.keys())
+
+        # Формирование строки: сначала имя скрипта, потом значения по ключам, потом секретный ключ
+        sign_parts = ['init_payment.php']
+        for key in sorted_keys:
+            sign_parts.append(str(params[key]))
+        sign_parts.append(cls.SECRET_KEY)
+
+        sign_string = ';'.join(sign_parts)
         return hashlib.md5(sign_string.encode()).hexdigest()
+
 
     @classmethod
     def create_payment(cls, amount: float, description: str, callback_url: str):
@@ -29,21 +43,35 @@ class FreedomPayClient:
 
         params = {
             'pg_order_id': order_id,
-            'pg_merchant_id': cls.MERCHANT_ID,
+            'pg_merchant_id': '560709',  # ✅ Новый ID от Damir
             'pg_amount': amount,
             'pg_currency': 'KGS',
             'pg_description': description,
             'pg_salt': salt,
             'pg_result_url': callback_url,
-            'pg_success_url': callback_url,
-            'pg_failure_url': callback_url,
-            'pg_success_url_method': 'GET',
-            'pg_failure_url_method': 'GET',
-            'pg_testing_mode': 1,
+            'pg_success_url': 'https://example.com/success',
+            'pg_failure_url': 'https://example.com/failure',
+            # ❌ НЕ ДОБАВЛЯЕМ:
+            # 'pg_success_url_method': 'GET',
+            # 'pg_failure_url_method': 'GET',
+            # 'pg_testing_mode': 1,
         }
 
-        params['pg_sig'] = cls._generate_signature(params)
 
+        # 🔽 Строка подписи
+        sign_data = ';'.join([str(value) for _, value in sorted(params.items())])
+        sign_string = f"init_payment.php;{sign_data};{cls.SECRET_KEY}"
+        pg_sig = hashlib.md5(sign_string.encode()).hexdigest()
+        params['pg_sig'] = pg_sig
+
+        # 🔽 Логируем всё
+        logger.warning("FreedomPay Request Params:")
+        for k, v in params.items():
+            logger.warning(f"{k} = {v}")
+        logger.warning(f"Signature String: {sign_string}")
+        logger.warning(f"Generated Signature: {pg_sig}")
+
+        # 🔽 Отправка запроса
         response = requests.post(cls.BASE_URL, files=params)
         response.raise_for_status()
 
