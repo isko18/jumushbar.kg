@@ -21,12 +21,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-l!qh=ony-ktvcu3&d^p!6ro_(-*g#_n_%abuq)*#40c(3r3epk'
-
+FREEDOMPAY_TOKEN='euI03V5l5W7IlFJv'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
-
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "192.168.205.254",
+    "4c55f4239a4b.ngrok-free.app",  # 👈 добавь этот
+]
 
 # Application definition
 
@@ -47,6 +51,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.orders',
     'apps.settings',
+    'apps.payments',
 ]
 
 MIDDLEWARE = [
@@ -192,12 +197,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.205.254:3000",
-]
+    'https://4c55f4239a4b.ngrok-free.app',
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "192.168.205.254",
 ]
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

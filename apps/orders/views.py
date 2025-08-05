@@ -101,8 +101,8 @@ class OrderRespondViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
         return Response({
-            'message': 'Отклик успешен',
-            'customer_phone': result['customer_phone']
+            'message': 'Перейдите к оплате',
+            'payment_url': result['payment_url']
         }, status=status.HTTP_200_OK)
 
 class ReviewViewSet(viewsets.ModelViewSet):
