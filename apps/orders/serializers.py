@@ -119,7 +119,7 @@ class OrderRespondSerializer(serializers.Serializer):
         message = self.validated_data.get('message', '')
         idempotency_key = self.validated_data.get('idempotency_key')
 
-        callback_url = 'https://4c55f4239a4b.ngrok-free.app/api/payments/callback/'
+        callback_url = 'https://jymysh.kg/api/payments/callback/'
 
         payment_data = FreedomPayClient.create_payment(
             amount=required_amount,

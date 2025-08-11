@@ -1,5 +1,3 @@
-# clients/freedompay.py
-
 import hashlib
 import random
 import string
@@ -57,21 +55,17 @@ class FreedomPayClient:
             # 'pg_testing_mode': 1,
         }
 
-
-        # 🔽 Строка подписи
         sign_data = ';'.join([str(value) for _, value in sorted(params.items())])
         sign_string = f"init_payment.php;{sign_data};{cls.SECRET_KEY}"
         pg_sig = hashlib.md5(sign_string.encode()).hexdigest()
         params['pg_sig'] = pg_sig
 
-        # 🔽 Логируем всё
         logger.warning("FreedomPay Request Params:")
         for k, v in params.items():
             logger.warning(f"{k} = {v}")
         logger.warning(f"Signature String: {sign_string}")
         logger.warning(f"Generated Signature: {pg_sig}")
 
-        # 🔽 Отправка запроса
         response = requests.post(cls.BASE_URL, files=params)
         response.raise_for_status()
 
