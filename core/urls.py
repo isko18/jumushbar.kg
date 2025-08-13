@@ -24,7 +24,6 @@ urlpatterns = [
     path("api/v1/users/", include("apps.users.urls")),
     path("api/v1/orders/", include("apps.orders.urls")),
     path("api/v1/settings/", include("apps.settings.urls")),
-    path('api/payments/', include('apps.payments.urls')),
 
     # Swagger и Redoc
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
