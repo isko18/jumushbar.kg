@@ -117,27 +117,28 @@ class OrderRespondSerializer(serializers.Serializer):
         order = self.validated_data['order']
         required_amount = self.validated_data['required_amount']
         message = self.validated_data.get('message', '')
-        idempotency_key = self.validated_data.get('idempotency_key')
 
-        callback_url = 'https://jymysh.kg/api/payments/callback/'
+        # Списываем деньги у исполнителя
+        executor.balance -= required_amount
+        executor.save(update_fields=['balance'])
 
-        payment_data = FreedomPayClient.create_payment(
-            amount=required_amount,
-            description=f"Отклик на заказ #{order.pk}",
-            callback_url=callback_url
-        )
-
-        Payment.objects.create(
+        # Создаём отклик
+        response = OrderResponse.objects.create(
             order=order,
             executor=executor,
-            amount=required_amount,
-            status='pending',
-            payment_id=payment_data['payment_id']
+            message=message
         )
 
+        # Логируем успешный отклик
+        self._log_attempt(order, executor, True, "Отклик успешно создан", self.validated_data)
+
         return {
-            'payment_url': payment_data['payment_url'],
+            'status': 'success',
+            'order_id': order.pk,
+            'response_id': response.pk,
+            'new_balance': executor.balance
         }
+
 
     def _calculate_fee(self, order):
         return 100 if order.budget and order.budget > 10000 else 50
