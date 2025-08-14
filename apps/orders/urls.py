@@ -1,5 +1,8 @@
 from rest_framework.routers import DefaultRouter
-from .views import OrderViewSet, OrderListAPI, OrderRespondViewSet, CategoriesListAPI, ReviewViewSet, BalanceUpdateView
+from .views import (
+    OrderViewSet, OrderListAPI, OrderRespondViewSet,
+    CategoriesListAPI, ReviewViewSet, BalanceUpdateView
+)
 from django.urls import path
 
 router = DefaultRouter()
@@ -13,5 +16,4 @@ urlpatterns = [
     path('user/balance/', BalanceUpdateView.as_view(), name='update-balance'),
 ]
 
-
-urlpatterns = router.urls
+urlpatterns += router.urls

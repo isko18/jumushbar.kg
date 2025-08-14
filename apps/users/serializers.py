@@ -9,6 +9,7 @@ from django.conf import settings
 from core.passport_classifier.tasks import validate_passport_images_task
 import tempfile
 from apps.users.utils import extract_passport_info_from_image
+from django.db import transaction
 
 class TokenWithRoleSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -288,3 +289,21 @@ class LegalDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalDocument
         fields = ['doc_type', 'content', 'updated_at']
+
+class AddedBalanceUser(serializers.ModelSerializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['balance', 'amount']
+        read_only_fields = ['balance']
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        amount = validated_data.get('amount')
+        if amount is None:
+            raise serializers.ValidationError({"amount": "Не указана сумма пополнения"})
+
+        instance.balance = (instance.balance or 0) + amount
+        instance.save(update_fields=['balance'])
+        return instance

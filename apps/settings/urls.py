@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
-router.register('image-banner/', views.ImageBannerAPI, basename='image_banner')
+router.register('image-banner', views.ImageBannerAPI, basename='image_banner')
 
 urlpatterns = [
     path('privacy-policy/', views.privacy_policy_view, name='privacy_policy'),

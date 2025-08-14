@@ -4,6 +4,9 @@ from apps.users.models import User
 from django.utils import timezone
 from django.db import transaction
 from rest_framework.exceptions import APIException
+from apps.payments.freedompay import FreedomPayClient
+from apps.payments.models import Payment
+
 
 class CategorySerializer(serializers.ModelSerializer):
     order_count = serializers.IntegerField(read_only=True)
@@ -114,41 +117,28 @@ class OrderRespondSerializer(serializers.Serializer):
         order = self.validated_data['order']
         required_amount = self.validated_data['required_amount']
         message = self.validated_data.get('message', '')
-        idempotency_key = self.validated_data.get('idempotency_key')
 
-        with transaction.atomic():
-            # ⚠️ Проверка идемпотентности
-            if idempotency_key:
-                if OrderRespondLog.objects.select_for_update().filter(
-                    idempotency_key=idempotency_key,
-                    success=True
-                ).exists():
-                    raise Conflict("Повторный запрос с тем же ключом уже выполнен.")
+        # Списываем деньги у исполнителя
+        executor.balance -= required_amount
+        executor.save(update_fields=['balance'])
 
-            existing = OrderResponse.objects.filter(order=order, executor=executor).first()
-            if existing:
-                self._log_attempt(order, executor, True, "Повторный отклик", self.validated_data, idempotency_key)
-                return {'order_response': existing, 'customer_phone': order.phone}
+        # Создаём отклик
+        response = OrderResponse.objects.create(
+            order=order,
+            executor=executor,
+            message=message
+        )
 
-            # Повторные проверки
-            order = Order.objects.select_for_update().get(pk=order.pk)
-            executor.refresh_from_db()
+        # Логируем успешный отклик
+        self._log_attempt(order, executor, True, "Отклик успешно создан", self.validated_data)
 
-            if order.responses.count() >= 5:
-                self._log_attempt(order, executor, False, "Лимит откликов", self.validated_data, idempotency_key)
-                raise serializers.ValidationError("Лимит откликов уже достигнут.")
+        return {
+            'status': 'success',
+            'order_id': order.pk,
+            'response_id': response.pk,
+            'new_balance': executor.balance
+        }
 
-            if executor.balance < required_amount:
-                self._log_attempt(order, executor, False, "Недостаточно средств", self.validated_data, idempotency_key)
-                raise serializers.ValidationError("Недостаточно средств.")
-
-            executor.balance -= required_amount
-            executor.save()
-
-            response = OrderResponse.objects.create(order=order, executor=executor, message=message)
-            self._log_attempt(order, executor, True, None, self.validated_data, idempotency_key)
-
-        return {'order_response': response, 'customer_phone': order.phone}
 
     def _calculate_fee(self, order):
         return 100 if order.budget and order.budget > 10000 else 50
@@ -161,7 +151,6 @@ class OrderRespondSerializer(serializers.Serializer):
             reason=reason,
             idempotency_key=idempotency_key or data.get('idempotency_key')
         )
-
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:

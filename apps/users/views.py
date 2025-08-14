@@ -14,6 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from random import randint
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import permissions
 
 
 class TokenObtainPairWithRoleView(TokenObtainPairView):
@@ -271,3 +272,16 @@ class LegalDocumentsView(APIView):
         docs = LegalDocument.objects.all()
         serializer = LegalDocumentSerializer(docs, many=True)
         return Response({doc['doc_type']: doc['content'] for doc in serializer.data})
+
+class AddBalanceView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        serializer = AddedBalanceUser(
+            instance=request.user,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
