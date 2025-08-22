@@ -102,3 +102,24 @@ class LegalDocument(models.Model):
 
     def __str__(self):
         return self.get_doc_type_display()
+
+class BalanceHistory(models.Model):
+    TRANSACTION_TYPE = (
+        ("deposit", "Пополнение"),
+        ("withdraw", "Списание"),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="balance_history")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    comment = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "История баланса"
+        verbose_name_plural = "История балансов"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.email} | {self.transaction_type} | {self.amount} {self.user.currency}"
+

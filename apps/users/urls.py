@@ -32,5 +32,6 @@ urlpatterns = [
     path('auth/resend-verification-code/', ResendEmailVerificationCodeView.as_view(), name='resend-verification-code'),
     path('api/legal-docs/', LegalDocumentsView.as_view(), name='legal-docs'), # privacy_policy, public_offer
     path('api/user/add-balance/', AddBalanceView.as_view(), name='add-balance'),
+    path("api/users-history-balance", BalanceHistoryView.as_view(), name='history-balance'),
     path('', include(router.urls)),  # Роуты справочников (регионов, подрегионов, профессий)
 ]

@@ -4,8 +4,7 @@ from apps.users.models import User
 from django.utils import timezone
 from django.db import transaction
 from rest_framework.exceptions import APIException
-from apps.payments.freedompay import FreedomPayClient
-from apps.payments.models import Payment
+from apps.users.models import BalanceHistory
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -121,6 +120,14 @@ class OrderRespondSerializer(serializers.Serializer):
         # Списываем деньги у исполнителя
         executor.balance -= required_amount
         executor.save(update_fields=['balance'])
+
+        # 📌 Записываем историю списания
+        BalanceHistory.objects.create(
+            user=executor,
+            amount=required_amount,
+            transaction_type="withdraw",
+            comment=f"Списание за отклик на заказ #{order.pk}"
+        )
 
         # Создаём отклик
         response = OrderResponse.objects.create(

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
 from random import randint
-from .models import User, UserRegion, UserSubRegion, Profession, LegalDocument
+from .models import User, UserRegion, UserSubRegion, Profession, LegalDocument, BalanceHistory
 from .serializers import *
 from core.passport_classifier.tasks import validate_passport_images_task
 from apps.users.permissions import IsExecutorPermission
@@ -120,6 +120,7 @@ class SetRoleView(generics.UpdateAPIView):
         return Response({"message": "Роль обновлена"})
 
 class SetProfessionView(generics.UpdateAPIView):
+    serializer_class = ProfessionSerializer
     permission_classes = [IsAuthenticated]
 
     def update(self, request, *args, **kwargs):
@@ -277,11 +278,47 @@ class AddBalanceView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, *args, **kwargs):
-        serializer = AddedBalanceUser(
-            instance=request.user,
-            data=request.data,
-            partial=True
+        amount = request.data.get("amount")
+
+        if not amount:
+            return Response({"error": "Сумма обязательна"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            amount = float(amount)
+        except ValueError:
+            return Response({"error": "Сумма должна быть числом"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount <= 0:
+            return Response({"error": "Сумма должна быть больше 0"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        user.balance += amount
+        user.save()
+
+        BalanceHistory.objects.create(
+            user=user,
+            amount=amount,
+            transaction_type="deposit",
+            comment="Пополнение через API"
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response({
+            "message": "Баланс успешно пополнен",
+            "balance": user.balance
+        }, status=status.HTTP_200_OK)
+
+class BalanceHistoryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        history = BalanceHistory.objects.filter(user=request.user)
+        data = [
+            {
+                "amount": h.amount,
+                "type": h.get_transaction_type_display(),
+                "date": h.created_at.strftime("%Y-%m-%d %H:%M"),
+                "comment": h.comment,
+            }
+            for h in history
+        ]
+        return Response(data, status=status.HTTP_200_OK)
