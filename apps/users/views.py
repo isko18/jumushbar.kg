@@ -15,7 +15,7 @@ from django.contrib.auth import authenticate
 from random import randint
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import permissions
-
+from decimal import Decimal, InvalidOperation
 
 class TokenObtainPairWithRoleView(TokenObtainPairView):
     serializer_class = TokenWithRoleSerializer
@@ -273,7 +273,6 @@ class LegalDocumentsView(APIView):
         docs = LegalDocument.objects.all()
         serializer = LegalDocumentSerializer(docs, many=True)
         return Response({doc['doc_type']: doc['content'] for doc in serializer.data})
-
 class AddBalanceView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -284,15 +283,15 @@ class AddBalanceView(APIView):
             return Response({"error": "Сумма обязательна"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            amount = float(amount)
-        except ValueError:
+            amount = Decimal(str(amount))  # 👈 конвертируем в Decimal
+        except (InvalidOperation, ValueError):
             return Response({"error": "Сумма должна быть числом"}, status=status.HTTP_400_BAD_REQUEST)
 
         if amount <= 0:
             return Response({"error": "Сумма должна быть больше 0"}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
-        user.balance += amount
+        user.balance += amount   # 👈 теперь Decimal + Decimal
         user.save()
 
         BalanceHistory.objects.create(
@@ -304,7 +303,7 @@ class AddBalanceView(APIView):
 
         return Response({
             "message": "Баланс успешно пополнен",
-            "balance": user.balance
+            "balance": str(user.balance)  # 👈 сериализуем Decimal в строку
         }, status=status.HTTP_200_OK)
 
 class BalanceHistoryView(APIView):

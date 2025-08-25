@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager, Permission
 from django.db import models
 from django.core.files.base import ContentFile
 from apps.utils import convert_imagefile_to_webp
+from decimal import Decimal
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, email=None, password=None, **extra_fields):
