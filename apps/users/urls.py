@@ -23,6 +23,7 @@ urlpatterns = [
     # path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Получение JWT токенов
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Обновление токенов
     path('verify-passport/', PassportPhotoUploadView.as_view(), name='verify-passport'),# Проверка паспорта AI
+    path('passport/status/', PassportStatusView.as_view(), name='passport-status'),
     path('user/profile/', UserProfileView.as_view(), name='user-profile'),              # Профиль пользователя
     path('auth/login-request/', LoginWithCodeRequestView.as_view(), name='login-request'),  # Запрос входа по коду
     path('auth/login-verify/', LoginWithCodeVerifyView.as_view(), name='login-verify'),     # Подтверждение кода входа

@@ -164,6 +164,16 @@ class PassportPhotoUploadView(APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class PassportStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        return Response({
+            "passport_status": getattr(user, "passport_status", "pending"),  
+            "is_verified": getattr(user, "is_verified", False)
+        }, status=status.HTTP_200_OK)
+
 class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
