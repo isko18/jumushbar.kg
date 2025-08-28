@@ -23,6 +23,9 @@ class CustomUserManager(BaseUserManager):
 class UserRegion(models.Model):
     title = models.CharField(max_length=155)
 
+    def __str__(self):
+        return self.title
+    
     class Meta:
         verbose_name = 'Регион'
         verbose_name_plural = 'Регионы'
@@ -31,12 +34,20 @@ class UserSubRegion(models.Model):
     title = models.CharField(max_length=155)
     region = models.ForeignKey(UserRegion, on_delete=models.CASCADE, related_name='subregions')
 
+    def __str__(self):
+        return self.title
+    
+
     class Meta:
         verbose_name = 'Подрегион'
         verbose_name_plural = 'Подрегионы'
 
 class Profession(models.Model):
     title = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.title
+    
 
     class Meta:
         verbose_name = 'Профессия'
